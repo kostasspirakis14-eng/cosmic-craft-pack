@@ -1,0 +1,5 @@
+build/
+*.zip
+preview_*.png
+claude-design-*.md
+__pycache__/
