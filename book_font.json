@@ -33,7 +33,13 @@
   "acacia_log": "",
   "dark_oak_log": "",
   "cherry_log": "",
-  "mangrove_log": ""
+  "mangrove_log": "",
+  "ender_eye": "",
+  "book": "",
+  "nether_star": "",
+  "oak_sapling": "",
+  "gold_nugget": "",
+  "writable_book": ""
  },
  "spaces": {
   "1": "",
@@ -488,6 +494,12 @@
   "": 9,
   "": 9,
   "": 9,
+  "": 9,
+  "": 9,
+  "": 9,
+  "": 9,
+  "": 7,
+  "": 9,
   "": 9,
   "": 1,
   "": 2,

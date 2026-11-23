@@ -59,7 +59,12 @@ PRICE_ICONS = {
     "oak_log": "block/oak_log", "spruce_log": "block/spruce_log", "birch_log": "block/birch_log", "jungle_log": "block/jungle_log",
     "acacia_log": "block/acacia_log", "dark_oak_log": "block/dark_oak_log", "cherry_log": "block/cherry_log",
     "mangrove_log": "block/mangrove_log",
+    # pause-menu buttons (cosmic-paper/tools/menu.py)
+    "ender_eye": "item/ender_eye", "book": "item/book", "nether_star": "item/nether_star", "oak_sapling": "block/oak_sapling",
+    "gold_nugget": "item/gold_nugget", "writable_book": "item/writable_book",
 }
+# The pause screen's own buttons, while connected to Cosmic Craft (English for every client language)
+LANG = {"menu.disconnect": "Leave Cosmic Craft", "menu.returnToGame": "Back to the Cosmos", "menu.server_links": "Cosmic Links"}
 
 shutil.rmtree(OUT, ignore_errors=True)
 tex = OUT / "assets/cosmic/textures/font"
@@ -254,6 +259,10 @@ if JAR.exists():
     print(f"book_font.json: {len(book['widths'])} widths, {len(book['icons'])} icons")
 else:
     print(f"no client jar at {JAR}: book_font.json left as it was")
+
+(OUT / "assets/minecraft/lang").mkdir(parents=True)
+for lang in ("en_us", "en_gb", "el_gr"):
+    (OUT / f"assets/minecraft/lang/{lang}.json").write_text(json.dumps(LANG, indent=1), encoding="utf-8")
 
 # Font files from every pack are merged, so this only adds our characters to Minecraft's default font.
 (OUT / "assets/minecraft/font/default.json").write_text(json.dumps({"providers": default}, indent=1), encoding="utf-8")
