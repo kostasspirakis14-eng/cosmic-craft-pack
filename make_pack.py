@@ -6,6 +6,7 @@ rank tags (LuckPerms prefixes), chat, the tab list, name tags, titles.
   U+E000           the logo, 56 px tall, hanging ~6 lines below its own line (tab header)
   U+E001..U+E00C   the logo with a diagonal shine sweeping across it (12 frames)
   U+E010           the logo, small, for the welcome title
+  U+E011..U+E014   the title logo popping in (4 sizes), U+E015..U+E020 the title logo's shine (12 frames)
   U+E100..U+E105   rank badges: owner, admin, mod, creator, vip, member (11 px pills from Claude Design)
   U+E110..U+E115   rank icons, same order (7x7)
   U+E120..U+E127   the owner badge with a moving glint (8 frames, for the tab list)
@@ -72,6 +73,12 @@ for i in range(SHINE_FRAMES + 1):
 
 default = list(logo_glyphs)
 default.append(glyph("logo_00.png", "", 16, 12))
+# Welcome intro: the title logo pops in (U+E011..E014: small, bigger, overshoot, settle), then a shine
+# crosses it (U+E015..E020 reuse the 12 shine frames). Ascent keeps each size centred on the same point.
+for i, size in enumerate((6, 11, 19, 16)):
+    default.append(glyph("logo_00.png", chr(0xE011 + i), size, round(size * 0.75)))
+for i in range(SHINE_FRAMES):
+    default.append(glyph(f"logo_{i + 1:02d}.png", chr(0xE015 + i), 16, 12))
 for i, rank in enumerate(RANKS):
     shutil.copy(SRC / "badges" / f"{rank}.png", tex / "badges" / f"{rank}.png")
     shutil.copy(SRC / "icons" / f"{rank}.png", tex / "icons" / f"{rank}.png")
