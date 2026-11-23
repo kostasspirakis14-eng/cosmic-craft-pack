@@ -10,12 +10,20 @@ rank tags (LuckPerms prefixes), chat, the tab list, name tags, titles.
   U+E100..U+E105   rank badges: owner, admin, mod, creator, vip, member (11 px pills from Claude Design)
   U+E110..U+E115   rank icons, same order (7x7)
   U+E120..U+E127   the owner badge with a moving glint (8 frames, for the tab list)
+  U+E130           the Cosmic Coin, text-sized (8 px)
+  U+E200..         item icons for the price book: Minecraft's own textures, referenced by path (nothing of Mojang's is copied)
+  U+F801..U+F820   blank spaces of 1-32 px, U+F701..U+F720 the same backwards: exact layout in books
 
 The logo frames are also in the font minecraft:cosmic, which older tab styles use.
+
+book_font.json (next to this script) is for the CosmicCraft plugin's price book: which character is which icon,
+and the width of every character, measured from the 26.3 client's font sheets (MC_CLIENT_JAR, default: Fabric
+Loom's cache), so the book can line prices up to the pixel.
 
 python -I make_pack.py
 """
 import json
+import os
 import shutil
 import zipfile
 from pathlib import Path
@@ -30,6 +38,22 @@ SHINE_FRAMES = 12
 LOGO_HEIGHT = 56   # on-screen height in GUI pixels
 LOGO_ASCENT = 7    # top of the logo sits at the top of its text line; it hangs ~6 lines down
 BADGE_ASCENT = 8   # 11 px pills, centred on a text line: 1 px above the letters, 2 below
+JAR = Path(os.environ.get("MC_CLIENT_JAR", Path.home() / ".gradle/caches/fabric-loom/26.3/minecraft-client.jar"))
+COIN = 0xE130
+SPACES = {n: 0xF800 + n for n in (1, 2, 4, 8, 16, 32)} | {-n: 0xF700 + n for n in (1, 2, 4, 8, 16, 32)}
+# material -> vanilla texture (under assets/minecraft/textures); the bank's worth.yml items
+PRICE_ICONS = {
+    "netherite_ingot": "item/netherite_ingot", "ancient_debris": "block/ancient_debris_side", "diamond": "item/diamond",
+    "emerald": "item/emerald", "gold_ingot": "item/gold_ingot", "iron_ingot": "item/iron_ingot", "copper_ingot": "item/copper_ingot",
+    "coal": "item/coal", "redstone": "item/redstone", "lapis_lazuli": "item/lapis_lazuli", "quartz": "item/quartz",
+    "amethyst_shard": "item/amethyst_shard", "ender_pearl": "item/ender_pearl", "blaze_rod": "item/blaze_rod",
+    "gunpowder": "item/gunpowder", "slime_ball": "item/slime_ball", "bone": "item/bone", "string": "item/string",
+    "leather": "item/leather", "wheat": "item/wheat", "carrot": "item/carrot", "potato": "item/potato",
+    "sugar_cane": "item/sugar_cane", "pumpkin": "block/pumpkin_side", "melon_slice": "item/melon_slice",
+    "oak_log": "block/oak_log", "spruce_log": "block/spruce_log", "birch_log": "block/birch_log", "jungle_log": "block/jungle_log",
+    "acacia_log": "block/acacia_log", "dark_oak_log": "block/dark_oak_log", "cherry_log": "block/cherry_log",
+    "mangrove_log": "block/mangrove_log",
+}
 
 shutil.rmtree(OUT, ignore_errors=True)
 tex = OUT / "assets/cosmic/textures/font"
@@ -87,6 +111,59 @@ for i, rank in enumerate(RANKS):
 for i, frame in enumerate(sorted((SRC / "owner_anim").glob("owner_*.png"))):
     shutil.copy(frame, tex / "owner_anim" / frame.name)
     default.append(glyph(f"owner_anim/{frame.name}", chr(0xE120 + i), 11, BADGE_ASCENT))
+
+shutil.copy(SRC / "coin_16.png", tex / "coin_16.png")
+default.append(glyph("coin_16.png", chr(COIN), 8, 7))
+for i, (material, texture) in enumerate(PRICE_ICONS.items()):
+    default.append({"type": "bitmap", "file": f"minecraft:{texture}.png", "ascent": 7, "height": 8, "chars": [chr(0xE200 + i)]})
+default.append({"type": "space", "advances": {chr(cp): n for n, cp in SPACES.items()}})
+
+
+def advance(img, height, cell_w, cell_h, col=0, row=0):
+    """Minecraft's bitmap rule: rightmost non-transparent column + 1, scaled to the glyph height, rounded, + 1."""
+    a = img.getchannel("A").load()
+    width = 0
+    for x in range(cell_w - 1, -1, -1):
+        if any(a[col * cell_w + x, row * cell_h + y] for y in range(cell_h)):
+            width = x + 1
+            break
+    return int(0.5 + width * height / cell_h) + 1
+
+
+def measure():
+    """Widths of text characters (vanilla providers, first match wins), the coin, the icons and the spaces."""
+    widths = {" ": 4}
+    with zipfile.ZipFile(JAR) as jar:
+        def tex(path):
+            return Image.open(jar.open(f"assets/minecraft/textures/{path}")).convert("RGBA")
+        for p in json.loads(jar.read("assets/minecraft/font/include/default.json"))["providers"]:
+            img = tex(p["file"].split(":")[1])
+            rows = p["chars"]
+            cw, ch = img.width // len(rows[0]), img.height // len(rows)
+            for r, line in enumerate(rows):
+                for c, char in enumerate(line):
+                    keep = 0x20 < ord(char) < 0x180 or 0x370 <= ord(char) < 0x400 or 0x2010 <= ord(char) < 0x2030  # Latin, Greek, dashes
+                    if keep and char not in widths:
+                        widths[char] = advance(img, p.get("height", 8), cw, ch, c, r)
+        icons = {}
+        for i, (material, texture) in enumerate(PRICE_ICONS.items()):
+            img = tex(texture + ".png")
+            assert img.size == (16, 16), f"{texture} is {img.size}, not one 16x16 frame"
+            icons[material] = chr(0xE200 + i)
+            widths[icons[material]] = advance(img, 8, 16, 16)
+    coin = Image.open(SRC / "coin_16.png").convert("RGBA")
+    widths[chr(COIN)] = advance(coin, 8, coin.width, coin.height)
+    for n, cp in SPACES.items():
+        widths[chr(cp)] = n
+    return {"coin": chr(COIN), "icons": icons, "spaces": {str(n): chr(cp) for n, cp in SPACES.items()}, "widths": widths}
+
+
+if JAR.exists():
+    book = measure()
+    (HERE / "book_font.json").write_text(json.dumps(book, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"book_font.json: {len(book['widths'])} widths, {len(book['icons'])} icons")
+else:
+    print(f"no client jar at {JAR}: book_font.json left as it was")
 
 # Font files from every pack are merged, so this only adds our characters to Minecraft's default font.
 (OUT / "assets/minecraft/font/default.json").write_text(json.dumps({"providers": default}, indent=1), encoding="utf-8")
