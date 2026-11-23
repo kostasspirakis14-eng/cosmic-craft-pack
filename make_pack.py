@@ -14,6 +14,12 @@ rank tags (LuckPerms prefixes), chat, the tab list, name tags, titles.
   U+E200..         item icons for the price book: Minecraft's own textures, referenced by path (nothing of Mojang's is copied)
   U+F801..U+F820   blank spaces of 1-32 px, U+F701..U+F720 the same backwards: exact layout in books
 
+Item models (data component item_model, set by the CosmicCraft plugin):
+  cosmic:coin      the Cosmic Coin you can hold: a 3D coin 2 px thick built from 7 slices that make a circle,
+                   gold reeded edge, a glint sweeping across the face every few seconds. Textures come from
+                   src/coin_face_16.png, coin_back_16.png, coin_edge_16.png (Claude Design, claude-design-coin.md);
+                   until those arrive they are made from src/coin_16.png.
+
 The logo frames are also in the font minecraft:cosmic, which older tab styles use.
 
 book_font.json (next to this script) is for the CosmicCraft plugin's price book: which character is which icon,
@@ -117,6 +123,90 @@ default.append(glyph("coin_16.png", chr(COIN), 8, 7))
 for i, (material, texture) in enumerate(PRICE_ICONS.items()):
     default.append({"type": "bitmap", "file": f"minecraft:{texture}.png", "ascent": 7, "height": 8, "chars": [chr(0xE200 + i)]})
 default.append({"type": "space", "advances": {chr(cp): n for n, cp in SPACES.items()}})
+
+
+COIN_SLICES = [(5, 11, 1, 2), (3, 13, 2, 3), (2, 14, 3, 5), (1, 15, 5, 11), (2, 14, 11, 13), (3, 13, 13, 14), (5, 11, 14, 15)]  # x1, x2, y1, y2
+
+
+def coin_textures():
+    """Face (with glint animation strip), back and edge. Claude Design art if present, else made from the 16 px coin."""
+    def load(name, fallback):
+        p = SRC / name
+        return Image.open(p).convert("RGBA") if p.exists() else fallback()
+
+    def placeholder_face():
+        face = Image.open(SRC / "coin_16.png").convert("RGBA")
+        mask = Image.new("L", (16, 16), 0)
+        for x1, x2, y1, y2 in COIN_SLICES:  # keep exactly the model's silhouette (texture y runs down)
+            mask.paste(255, (x1, 16 - y2, x2, 16 - y1))
+        out = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+        out.paste(face, (0, 0), mask)
+        return out
+
+    def placeholder_edge():
+        edge = Image.new("RGBA", (16, 16))
+        for x in range(16):
+            for y in range(16):
+                light = (255, 213, 74) if x % 2 == 0 else (184, 134, 11)
+                k = 1.08 - y / 30  # lighter on top so it reads as round
+                edge.putpixel((x, y), tuple(min(255, int(c * k)) for c in light) + (255,))
+        return edge
+
+    face = load("coin_face_16.png", placeholder_face)
+    back = load("coin_back_16.png", lambda: face.transpose(Image.FLIP_LEFT_RIGHT))
+    edge = load("coin_edge_16.png", placeholder_edge)
+    frames = [face]
+    for i in range(6):  # a glint sweeping across, only where the coin is
+        f = face.copy()
+        px = f.load()
+        centre = -2 + i * 3.6
+        for y in range(16):
+            for x in range(16):
+                r, g, b, a = px[x, y]
+                k = max(0.0, 1 - abs((x + y) / 2 - centre) / 2.2) * 0.75
+                if a and k:
+                    px[x, y] = (round(r + (255 - r) * k), round(g + (255 - g) * k), round(b + (255 - b) * k), a)
+        frames.append(f)
+    strip = Image.new("RGBA", (16, 16 * len(frames)))
+    for i, f in enumerate(frames):
+        strip.paste(f, (0, 16 * i))
+    return strip, back, edge
+
+
+def coin_model():
+    elements = []
+    for x1, x2, y1, y2 in COIN_SLICES:
+        v1, v2 = 16 - y2, 16 - y1
+        elements.append({"from": [x1, y1, 7], "to": [x2, y2, 9], "faces": {
+            "south": {"uv": [x1, v1, x2, v2], "texture": "#face"},
+            "north": {"uv": [x2, v1, x1, v2], "texture": "#back"},   # flipped: it is read from behind
+            "up": {"uv": [x1, 0, x2, 2], "texture": "#edge"}, "down": {"uv": [x1, 14, x2, 16], "texture": "#edge"},
+            "east": {"uv": [7, v1, 9, v2], "texture": "#edge"}, "west": {"uv": [7, v1, 9, v2], "texture": "#edge"}}})
+    return {"textures": {"face": "cosmic:item/coin_face", "back": "cosmic:item/coin_back", "edge": "cosmic:item/coin_edge",
+                         "particle": "cosmic:item/coin_edge"},
+            "gui_light": "front",
+            "elements": elements,
+            "display": {  # vanilla item/generated poses; the inventory icon turned a little so it reads as 3D
+                "gui": {"rotation": [15, -30, 0], "scale": [0.9, 0.9, 0.9]},
+                "ground": {"translation": [0, 2, 0], "scale": [0.5, 0.5, 0.5]},
+                "head": {"rotation": [0, 180, 0], "translation": [0, 13, 7]},
+                "thirdperson_righthand": {"translation": [0, 3, 1], "scale": [0.55, 0.55, 0.55]},
+                "firstperson_righthand": {"rotation": [0, -90, 25], "translation": [1.13, 3.2, 1.13], "scale": [0.68, 0.68, 0.68]},
+                "fixed": {"rotation": [0, 180, 0]}}}
+
+
+items_tex = OUT / "assets/cosmic/textures/item"
+items_tex.mkdir(parents=True)
+face_strip, coin_back, coin_edge = coin_textures()
+face_strip.save(items_tex / "coin_face.png")
+(items_tex / "coin_face.png.mcmeta").write_text(json.dumps({"animation": {"frames": [{"index": 0, "time": 70}] + [
+    {"index": i, "time": 2} for i in range(1, face_strip.height // 16)]}}), encoding="utf-8")
+coin_back.save(items_tex / "coin_back.png")
+coin_edge.save(items_tex / "coin_edge.png")
+(OUT / "assets/cosmic/models/item").mkdir(parents=True)
+(OUT / "assets/cosmic/models/item/coin.json").write_text(json.dumps(coin_model(), indent=1), encoding="utf-8")
+(OUT / "assets/cosmic/items").mkdir(parents=True)
+(OUT / "assets/cosmic/items/coin.json").write_text(json.dumps({"model": {"type": "minecraft:model", "model": "cosmic:item/coin"}}), encoding="utf-8")
 
 
 def advance(img, height, cell_w, cell_h, col=0, row=0):
