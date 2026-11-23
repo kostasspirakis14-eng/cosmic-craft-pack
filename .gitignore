@@ -3,3 +3,4 @@ build/
 preview_*.png
 claude-design-*.md
 __pycache__/
+incoming/
