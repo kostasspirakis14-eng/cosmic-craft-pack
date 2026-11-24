@@ -18,7 +18,7 @@ Item models (data component item_model, set by the CosmicCraft plugin):
   cosmic:coin      the Cosmic Coin you can hold: a 3D coin 2 px thick built from 7 slices that make a circle,
                    gold reeded edge, a glint sweeping across the face every few seconds. Textures come from
                    src/coin_face_16.png, coin_back_16.png, coin_edge_16.png (Claude Design, claude-design-coin.md);
-                   until those arrive they are made from src/coin_16.png.
+                   until those arrive they are made from src/coin_16.png. In the inventory it spins (src/coin_spin, 12 frames).
 
 The logo frames are also in the font minecraft:cosmic, which older tab styles use.
 
@@ -130,7 +130,8 @@ for i, (material, texture) in enumerate(PRICE_ICONS.items()):
 default.append({"type": "space", "advances": {chr(cp): n for n, cp in SPACES.items()}})
 
 
-COIN_SLICES = [(5, 11, 1, 2), (3, 13, 2, 3), (2, 14, 3, 5), (1, 15, 5, 11), (2, 14, 11, 13), (3, 13, 13, 14), (5, 11, 14, 15)]  # x1, x2, y1, y2
+COIN_SLICES = [(5, 11, 0, 1), (3, 13, 1, 2), (2, 14, 2, 3), (1, 15, 3, 5), (0, 16, 5, 11), (1, 15, 11, 13), (2, 14, 13, 14), (3, 13, 14, 15),
+               (5, 11, 15, 16)]  # x1, x2, y1, y2: the silhouette of src/coin_face_16.png (Claude Design), row by row
 
 
 def coin_textures():
@@ -210,8 +211,20 @@ coin_back.save(items_tex / "coin_back.png")
 coin_edge.save(items_tex / "coin_edge.png")
 (OUT / "assets/cosmic/models/item").mkdir(parents=True)
 (OUT / "assets/cosmic/models/item/coin.json").write_text(json.dumps(coin_model(), indent=1), encoding="utf-8")
+# In the inventory the coin spins (Claude Design's 12 frames); held, dropped or displayed it is the 3D coin.
+spin = sorted((SRC / "coin_spin").glob("coin_spin_*.png"))
+strip = Image.new("RGBA", (16, 16 * len(spin)))
+for i, frame in enumerate(spin):
+    strip.paste(Image.open(frame).convert("RGBA"), (0, 16 * i))
+strip.save(items_tex / "coin_spin.png")
+(items_tex / "coin_spin.png.mcmeta").write_text(json.dumps({"animation": {"frametime": 3}}), encoding="utf-8")
+(OUT / "assets/cosmic/models/item/coin_icon.json").write_text(json.dumps({"parent": "minecraft:item/generated",
+                                                                          "textures": {"layer0": "cosmic:item/coin_spin"}}), encoding="utf-8")
 (OUT / "assets/cosmic/items").mkdir(parents=True)
-(OUT / "assets/cosmic/items/coin.json").write_text(json.dumps({"model": {"type": "minecraft:model", "model": "cosmic:item/coin"}}), encoding="utf-8")
+(OUT / "assets/cosmic/items/coin.json").write_text(json.dumps({"model": {
+    "type": "minecraft:select", "property": "minecraft:display_context",
+    "cases": [{"when": "gui", "model": {"type": "minecraft:model", "model": "cosmic:item/coin_icon"}}],
+    "fallback": {"type": "minecraft:model", "model": "cosmic:item/coin"}}}, indent=1), encoding="utf-8")
 
 
 def advance(img, height, cell_w, cell_h, col=0, row=0):
