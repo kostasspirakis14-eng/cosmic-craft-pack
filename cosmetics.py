@@ -200,7 +200,7 @@ def gui_pose(elements, base_rotation=(30, 225, 0)):
 
 
 def model(elements, textures):
-    return {"textures": {**{k: f"cosmic:cosmetic/{v}" for k, v in textures.items()}, "particle": f"cosmic:cosmetic/{next(iter(textures.values()))}"},
+    return {"textures": {**{k: f"cosmic:item/cosmetic/{v}" for k, v in textures.items()}, "particle": f"cosmic:item/cosmetic/{next(iter(textures.values()))}"},
             "elements": elements,
             "display": {"head": {"rotation": [0, 0, 0], "translation": [0, 0, 0], "scale": [1, 1, 1]},
                         "gui": gui_pose(elements),
@@ -288,7 +288,7 @@ MODELS = {"astronaut_helmet": astronaut_helmet, "alien_antennae": alien_antennae
 def write(out, src):
     """Textures, models and item definitions into the pack being built at out/."""
     make_placeholders()
-    tex = out / "assets/cosmic/textures/cosmetic"
+    tex = out / "assets/cosmic/textures/item/cosmetic"  # inside item/: only atlas-listed folders load, cosmetic/ alone showed nothing
     tex.mkdir(parents=True, exist_ok=True)
     for name, (frames, frametime) in PARTS.items():
         art = src / "cosmetics" / f"{name}.png"
