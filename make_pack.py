@@ -17,6 +17,7 @@ rank tags (LuckPerms prefixes), chat, the tab list, name tags, titles.
   U+F801..U+F820   blank spaces of 1-32 px, U+F701..U+F720 the same backwards: exact layout in books
 
 Item models (data component item_model, set by the CosmicCraft plugin):
+  cosmic:cosmetic/<id>  the Cosmic Wardrobe's hats and pets (cosmetics.py)
   cosmic:coin      the Cosmic Coin you can hold: a 3D coin 2 px thick built from 7 slices that make a circle,
                    gold reeded edge, a glint sweeping across the face every few seconds. Textures come from
                    src/coin_face_16.png, coin_back_16.png, coin_edge_16.png (Claude Design, claude-design-coin.md);
@@ -33,12 +34,15 @@ python -I make_pack.py
 import json
 import os
 import shutil
+import sys
 import zipfile
 from pathlib import Path
 
 from PIL import Image
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))  # python -I leaves the script's folder out
+import cosmetics  # noqa: E402
 SRC = HERE / "src"
 OUT = HERE / "build"
 RANKS = ["owner", "admin", "mod", "creator", "vip", "member"]
@@ -63,7 +67,7 @@ PRICE_ICONS = {
     "mangrove_log": "block/mangrove_log",
     # pause-menu buttons (cosmic-paper/tools/menu.py)
     "ender_eye": "item/ender_eye", "book": "item/book", "nether_star": "item/nether_star", "oak_sapling": "block/oak_sapling",
-    "gold_nugget": "item/gold_nugget", "writable_book": "item/writable_book",
+    "gold_nugget": "item/gold_nugget", "writable_book": "item/writable_book", "golden_helmet": "item/golden_helmet",
 }
 # The pause screen's own buttons, while connected to Cosmic Craft (English for every client language)
 LANG = {"menu.disconnect": "Leave Cosmic Craft", "menu.returnToGame": "Back to the Cosmos", "menu.server_links": "Cosmic Links"}
@@ -282,6 +286,8 @@ for lang in ("en_us", "en_gb", "el_gr"):
     (OUT / f"assets/minecraft/lang/{lang}.json").write_text(json.dumps(LANG, indent=1), encoding="utf-8")
 
 # Font files from every pack are merged, so this only adds our characters to Minecraft's default font.
+n_cosmetics = cosmetics.write(OUT, SRC)  # the Cosmic Wardrobe's hats and pets (cosmetics.py)
+
 (OUT / "assets/minecraft/font/default.json").write_text(json.dumps({"providers": default}, indent=1), encoding="utf-8")
 (OUT / "assets/minecraft/font/cosmic.json").write_text(json.dumps({"providers": logo_glyphs}, indent=1), encoding="utf-8")
 (OUT / "pack.mcmeta").write_text(json.dumps({"pack": {
@@ -297,4 +303,4 @@ with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
     for f in sorted(OUT.rglob("*")):
         if f.is_file():
             z.write(f, f.relative_to(OUT).as_posix())
-print(f"{zip_path.name}: {zip_path.stat().st_size // 1024} KB, {len(default)} glyphs in minecraft:default")
+print(f"{zip_path.name}: {zip_path.stat().st_size // 1024} KB, {len(default)} glyphs in minecraft:default, {n_cosmetics} cosmetics")
