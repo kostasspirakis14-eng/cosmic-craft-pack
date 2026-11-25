@@ -39,7 +39,8 @@
   "nether_star": "",
   "oak_sapling": "",
   "gold_nugget": "",
-  "writable_book": ""
+  "writable_book": "",
+  "golden_helmet": ""
  },
  "spaces": {
   "1": "",
@@ -500,6 +501,7 @@
   "": 9,
   "": 7,
   "": 9,
+  "": 8,
   "": 9,
   "": 1,
   "": 2,
