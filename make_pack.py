@@ -45,6 +45,8 @@ from PIL import Image
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))  # python -I leaves the script's folder out
 import cosmetics  # noqa: E402
+import gui  # noqa: E402
+import voxels  # noqa: E402
 SRC = HERE / "src"
 OUT = HERE / "build"
 RANKS = ["owner", "admin", "mod", "creator", "vip", "member"]
@@ -289,6 +291,8 @@ for lang in ("en_us", "en_gb", "el_gr"):
 
 # Font files from every pack are merged, so this only adds our characters to Minecraft's default font.
 n_cosmetics = cosmetics.write(OUT, SRC)  # the Cosmic Wardrobe's hats and pets (cosmetics.py)
+gui.write(OUT, SRC)  # the Wardrobe's painted screen (gui.py)
+n_pets = voxels.write(OUT, HERE / "pet_meta.json")  # the voxel pets and their poses (voxels.py)
 
 # The menu skin from Claude Design (claude-design-menu-book.md): Minecraft's own buttons, book page, list backgrounds,
 # separators and popup, in deep-space glass, while a player is on the server. Same paths as vanilla's, so they replace them.

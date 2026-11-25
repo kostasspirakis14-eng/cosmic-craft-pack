@@ -1,0 +1,212 @@
+{
+ "axolotl": {
+  "walk": true,
+  "scale": 0.543,
+  "feet": 3.0,
+  "top": 13.0,
+  "neck": [
+   8.0,
+   5.5,
+   1.5
+  ],
+  "poses": [
+   "walk1",
+   "walk2",
+   "sleep"
+  ]
+ },
+ "tiger_cub": {
+  "walk": true,
+  "scale": 0.606,
+  "feet": -0.5,
+  "top": 16.5,
+  "neck": [
+   7.5,
+   6.0,
+   3.5
+  ],
+  "poses": [
+   "walk1",
+   "walk2",
+   "sit",
+   "sleep"
+  ]
+ },
+ "fox_kit": {
+  "walk": true,
+  "scale": 0.487,
+  "feet": -0.5,
+  "top": 16.5,
+  "neck": [
+   7.5,
+   6.0,
+   3.5
+  ],
+  "poses": [
+   "walk1",
+   "walk2",
+   "sit",
+   "sleep"
+  ]
+ },
+ "red_panda": {
+  "walk": true,
+  "scale": 0.533,
+  "feet": 0.0,
+  "top": 16.0,
+  "neck": [
+   7.5,
+   6.5,
+   3.5
+  ],
+  "poses": [
+   "walk1",
+   "walk2",
+   "sit",
+   "sleep"
+  ]
+ },
+ "capybara": {
+  "walk": true,
+  "scale": 0.576,
+  "feet": -0.5,
+  "top": 16.5,
+  "neck": [
+   7.5,
+   6.0,
+   6.0
+  ],
+  "poses": [
+   "walk1",
+   "walk2",
+   "sit",
+   "sleep"
+  ]
+ },
+ "penguin": {
+  "walk": true,
+  "scale": 0.763,
+  "feet": 1.5,
+  "top": 14.5,
+  "neck": [
+   8.0,
+   7.0,
+   5.0
+  ],
+  "poses": [
+   "walk1",
+   "walk2",
+   "sit",
+   "sleep"
+  ]
+ },
+ "frog": {
+  "walk": true,
+  "scale": 0.763,
+  "feet": 2.0,
+  "top": 14.0,
+  "neck": [
+   8.0,
+   9.5,
+   4.5
+  ],
+  "poses": [
+   "walk1",
+   "walk2",
+   "sleep"
+  ]
+ },
+ "baby_trex": {
+  "walk": true,
+  "scale": 0.549,
+  "feet": -0.5,
+  "top": 16.5,
+  "neck": [
+   7.5,
+   9.0,
+   2.5
+  ],
+  "poses": [
+   "walk1",
+   "walk2",
+   "sit",
+   "sleep"
+  ]
+ },
+ "astro_kitten": {
+  "walk": false,
+  "scale": 0.62,
+  "feet": 0.0,
+  "top": 16.0,
+  "neck": [
+   8.0,
+   5.5,
+   4.0
+  ],
+  "poses": [
+   "sleep"
+  ]
+ },
+ "space_whale": {
+  "walk": false,
+  "scale": 0.8,
+  "feet": 1.5,
+  "top": 14.5,
+  "neck": [
+   8.0,
+   4.0,
+   -1.5
+  ],
+  "poses": [
+   "flap1",
+   "flap2",
+   "sleep"
+  ]
+ },
+ "star_jelly": {
+  "walk": false,
+  "scale": 0.88,
+  "feet": 2.0,
+  "top": 14.0,
+  "neck": [
+   7.5,
+   9.5,
+   4.0
+  ],
+  "poses": [
+   "flap1",
+   "flap2",
+   "sleep"
+  ]
+ },
+ "star_buddy": {
+  "walk": false,
+  "scale": 0.689,
+  "feet": 2.5,
+  "top": 13.5,
+  "neck": [
+   8.0,
+   3.0,
+   6.0
+  ],
+  "poses": [
+   "sleep"
+  ]
+ },
+ "baby_dragon": {
+  "walk": false,
+  "scale": 0.655,
+  "feet": 1.0,
+  "top": 15.0,
+  "neck": [
+   7.5,
+   5.5,
+   4.0
+  ],
+  "poses": [
+   "flap1",
+   "flap2",
+   "sleep"
+  ]
+ }
+}

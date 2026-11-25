@@ -4,8 +4,12 @@ make_pack.py calls write(OUT). Every cosmetic is an item model cosmic:cosmetic/<
   hats   astronaut_helmet, alien_antennae, saturn_hat, crown: shaped for the head slot (the CosmicCraft plugin shows
          them over the helmet), their gui pose fitted to the inventory slot
   pets   satellite, ufo, mini_saturn: centred on 8,8,8, shown by item displays that orbit or follow the player
-Textures: src/cosmetics/<part>.png from Claude Design (claude-design-cosmetics.md) when present, otherwise the pixel-art
-placeholders made below. A texture taller than wide is an animation strip (16 or 32 px frames).
+  more   cos_hats.py (12 hats), cos_things.py (jetpack, axolotl backpack, balloons, effect models, egg, gift, cat grave,
+         bow, medal, the locked texture), cos_icons.py (flat menu icons and the elytra-style wings); helpers in cos_art.py
+  <id>_locked for every model (a dark silhouette), <id>_shiny for SHINY (gold copies of the final textures)
+Textures: src/cosmetics/<part>.png from Claude Design (claude-design-cosmetics.md, -hats-2, -back-balloons, -effects,
+-icons) when present, otherwise the pixel-art placeholders. A texture taller than wide is an animation strip (square
+frames, or the frame size its .mcmeta gives).
 
 Head space (where a hat sits): Minecraft draws a head-slot item 0.625 block big, centred on the head, so in model units
 the head fills 1.6..14.4 on every axis (its outer skin layer 1.2..14.8); the face is on the north side (low z).
@@ -177,11 +181,23 @@ def make_placeholders():
 FACES = ("north", "south", "east", "west", "up", "down")
 
 
-def box(a, b, tex, faces=FACES, rot=None):
-    e = {"from": [round(v, 3) for v in a], "to": [round(v, 3) for v in b],
-         "faces": {f: {"uv": [0, 0, 16, 16], "texture": "#" + (tex[f] if isinstance(tex, dict) else tex)} for f in faces}}
+def box(a, b, tex, faces=FACES, rot=None, light=0, tile=()):
+    """An element; tex is one texture key or a dict face -> key; light (1-15) makes it glow in the dark.
+    Faces show the whole texture, except texture keys in tile: those show the face's own size at 1 texel per unit
+    (cropped from the top-left), so a pattern keeps its proportions on long thin faces."""
+    assert all(-16 <= v <= 32 for v in (*a, *b)), (a, b)
+    size = [abs(b[i] - a[i]) for i in range(3)]
+    dims = {"north": (0, 1), "south": (0, 1), "east": (2, 1), "west": (2, 1), "up": (0, 2), "down": (0, 2)}
+    e = {"from": [round(v, 3) for v in a], "to": [round(v, 3) for v in b], "faces": {}}
+    for f in faces:
+        key = tex[f] if isinstance(tex, dict) else tex
+        u, v = (min(16, round(size[i], 2)) for i in dims[f])
+        e["faces"][f] = {"uv": [0, 0, u, v] if key in tile else [0, 0, 16, 16], "texture": "#" + key}
     if rot:
-        e["rotation"] = rot
+        assert rot["angle"] in (-45, -22.5, 0, 22.5, 45), rot
+        e["rotation"] = {**rot, "origin": list(rot["origin"])}  # a copy: several elements may share one rotation
+    if light:
+        e["light_emission"] = light
     return e
 
 
@@ -281,13 +297,34 @@ def mini_saturn():
     return model(planet_and_ring(8, 8, 8, 4.2), {"planet": "planet", "ring": "ring"})
 
 
+SHINY = ["satellite", "ufo", "mini_saturn"]  # also get <id>_shiny: the same shape with gold copies of the final textures
 MODELS = {"astronaut_helmet": astronaut_helmet, "alien_antennae": alien_antennae, "saturn_hat": saturn_hat, "crown": crown,
           "satellite": satellite, "ufo": ufo, "mini_saturn": mini_saturn}
 
 
+def locked(m, cutouts):
+    """The same shape as a dark silhouette for cosmetics the player does not own yet: every face uses the texture
+    locked, except faces whose texture has see-through holes (a ring, blades, leaves): those use <texture>_locked,
+    a dark copy keeping the holes, so a halo does not turn into a black square."""
+    names = {k: v.split("/")[-1] for k, v in m["textures"].items() if k != "particle"}
+    textures = {"locked": "cosmic:item/cosmetic/locked", "particle": "cosmic:item/cosmetic/locked"}
+    textures.update({k: f"cosmic:item/cosmetic/{t}_locked" for k, t in names.items() if t in cutouts})
+    el = [{**{k: v for k, v in e.items() if k != "light_emission"},
+           "faces": {f: {**face, "texture": face["texture"] if names[face["texture"][1:]] in cutouts else "#locked"}
+                     for f, face in e["faces"].items()}} for e in m["elements"]]
+    return {**m, "textures": textures, "elements": el}
+
+
+def shiny(m):
+    return {**m, "textures": {k: v + "_gold" for k, v in m["textures"].items()}}
+
+
 def write(out, src):
     """Textures, models and item definitions into the pack being built at out/."""
+    import cos_art, cos_hats, cos_icons, cos_things  # they import this module's helpers
     make_placeholders()
+    for mod in (cos_hats, cos_things):
+        mod.textures()
     tex = out / "assets/cosmic/textures/item/cosmetic"  # inside item/: only atlas-listed folders load, cosmetic/ alone showed nothing
     tex.mkdir(parents=True, exist_ok=True)
     for name, (frames, frametime) in PARTS.items():
@@ -298,17 +335,39 @@ def write(out, src):
             if meta.exists():
                 (tex / f"{name}.png.mcmeta").write_text(meta.read_text(encoding="utf-8"), encoding="utf-8")
             continue
-        w = frames[0].width
-        strip = Image.new("RGBA", (w, w * len(frames)))
+        w, h = frames[0].size
+        strip = Image.new("RGBA", (w, h * len(frames)))
         for i, f in enumerate(frames):
-            strip.paste(f, (0, w * i))
+            strip.paste(f, (0, h * i))
         strip.save(tex / f"{name}.png")
         if len(frames) > 1:
-            (tex / f"{name}.png.mcmeta").write_text(json.dumps({"animation": {"frametime": frametime}}), encoding="utf-8")
+            anim = dict(frametime) if isinstance(frametime, dict) else {"frametime": frametime}
+            if h != w:
+                anim.update(width=w, height=h)
+            (tex / f"{name}.png.mcmeta").write_text(json.dumps({"animation": anim}), encoding="utf-8")
+    makers = {**MODELS, **cos_hats.MODELS, **cos_things.MODELS}
+    models = {name: make() for name, make in makers.items()}
+    used = {v.split("/")[-1] for m in models.values() for k, v in m["textures"].items() if k != "particle"}
+    cutouts = {t for t in used if Image.open(tex / f"{t}.png").convert("RGBA").getextrema()[3][0] == 0}
+    for t in cutouts:  # dark copies keeping the holes and the animation, for the locked models
+        cos_art.silhouette(Image.open(tex / f"{t}.png")).save(tex / f"{t}_locked.png")
+        if (tex / f"{t}.png.mcmeta").exists():
+            (tex / f"{t}_locked.png.mcmeta").write_text((tex / f"{t}.png.mcmeta").read_text(encoding="utf-8"), encoding="utf-8")
+    for name in list(models):
+        models[name + "_locked"] = locked(models[name], cutouts)
+    for name in SHINY:
+        models[name + "_shiny"] = shiny(models[name])
+        for t in models[name]["textures"].values():  # gold copies of the final art (Claude Design or placeholder)
+            t = t.split("/")[-1]
+            cos_art.to_gold(Image.open(tex / f"{t}.png")).save(tex / f"{t}_gold.png")
+            meta = tex / f"{t}.png.mcmeta"
+            if meta.exists():
+                (tex / f"{t}_gold.png.mcmeta").write_text(meta.read_text(encoding="utf-8"), encoding="utf-8")
     (out / "assets/cosmic/models/cosmetic").mkdir(parents=True, exist_ok=True)
     (out / "assets/cosmic/items/cosmetic").mkdir(parents=True, exist_ok=True)
-    for name, make in MODELS.items():
-        (out / f"assets/cosmic/models/cosmetic/{name}.json").write_text(json.dumps(make(), indent=1), encoding="utf-8")
+    for name, m in models.items():
+        (out / f"assets/cosmic/models/cosmetic/{name}.json").write_text(json.dumps(m, indent=1), encoding="utf-8")
         (out / f"assets/cosmic/items/cosmetic/{name}.json").write_text(json.dumps(
             {"model": {"type": "minecraft:model", "model": f"cosmic:cosmetic/{name}"}}), encoding="utf-8")
-    return len(MODELS)
+    n_icons = cos_icons.write(out, src)  # flat 2D icons (+ locked ones) and the three elytra-style wings
+    return len(models) + n_icons
