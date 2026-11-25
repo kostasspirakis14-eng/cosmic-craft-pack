@@ -1,0 +1,34 @@
+{
+  "animation": {
+    "width": 200,
+    "height": 20,
+    "frametime": 2,
+    "frames": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      {
+        "index": 5,
+        "time": 6
+      },
+      {
+        "index": 6,
+        "time": 6
+      },
+      {
+        "index": 7,
+        "time": 6
+      }
+    ]
+  },
+  "gui": {
+    "scaling": {
+      "type": "nine_slice",
+      "width": 200,
+      "height": 20,
+      "border": 3
+    }
+  }
+}

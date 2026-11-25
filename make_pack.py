@@ -16,6 +16,8 @@ rank tags (LuckPerms prefixes), chat, the tab list, name tags, titles.
   U+E200..         item icons for the price book: Minecraft's own textures, referenced by path (nothing of Mojang's is copied)
   U+F801..U+F820   blank spaces of 1-32 px, U+F701..U+F720 the same backwards: exact layout in books
 
+Menu skin (src/menu/, Claude Design): buttons, book page, page arrows, list backgrounds, separators, popup -> textures/gui.
+
 Item models (data component item_model, set by the CosmicCraft plugin):
   cosmic:cosmetic/<id>  the Cosmic Wardrobe's hats and pets (cosmetics.py)
   cosmic:coin      the Cosmic Coin you can hold: a 3D coin 2 px thick built from 7 slices that make a circle,
@@ -288,6 +290,34 @@ for lang in ("en_us", "en_gb", "el_gr"):
 # Font files from every pack are merged, so this only adds our characters to Minecraft's default font.
 n_cosmetics = cosmetics.write(OUT, SRC)  # the Cosmic Wardrobe's hats and pets (cosmetics.py)
 
+# The menu skin from Claude Design (claude-design-menu-book.md): Minecraft's own buttons, book page, list backgrounds,
+# separators and popup, in deep-space glass, while a player is on the server. Same paths as vanilla's, so they replace them.
+GUI = OUT / "assets/minecraft/textures/gui"
+MENU_SKIN = {  # src/menu file -> where Minecraft looks for it (under textures/gui)
+    "button.png": "sprites/widget/button.png", "button_highlighted.png": "sprites/widget/button_highlighted.png",
+    "button_disabled.png": "sprites/widget/button_disabled.png",
+    "page_forward.png": "sprites/widget/page_forward.png", "page_forward_highlighted.png": "sprites/widget/page_forward_highlighted.png",
+    "page_backward.png": "sprites/widget/page_backward.png", "page_backward_highlighted.png": "sprites/widget/page_backward_highlighted.png",
+    "popup_background.png": "sprites/popup/background.png",
+    "book.png": "book.png",
+    "menu_list_background.png": "menu_list_background.png", "inworld_menu_list_background.png": "inworld_menu_list_background.png",
+    "header_separator.png": ["header_separator.png", "inworld_header_separator.png"],
+    "footer_separator.png": ["footer_separator.png", "inworld_footer_separator.png"],
+}
+menu_files = 0
+for name, targets in MENU_SKIN.items():
+    art = SRC / "menu" / name
+    if not art.exists():
+        continue
+    for target in targets if isinstance(targets, list) else [targets]:
+        dest = GUI / target
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(art, dest)
+        meta = art.with_name(name + ".mcmeta")  # nine-slice scaling, and the hovered button's animation
+        if meta.exists():
+            shutil.copy(meta, dest.with_name(dest.name + ".mcmeta"))
+        menu_files += 1
+
 (OUT / "assets/minecraft/font/default.json").write_text(json.dumps({"providers": default}, indent=1), encoding="utf-8")
 (OUT / "assets/minecraft/font/cosmic.json").write_text(json.dumps({"providers": logo_glyphs}, indent=1), encoding="utf-8")
 (OUT / "pack.mcmeta").write_text(json.dumps({"pack": {
@@ -303,4 +333,4 @@ with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
     for f in sorted(OUT.rglob("*")):
         if f.is_file():
             z.write(f, f.relative_to(OUT).as_posix())
-print(f"{zip_path.name}: {zip_path.stat().st_size // 1024} KB, {len(default)} glyphs in minecraft:default, {n_cosmetics} cosmetics")
+print(f"{zip_path.name}: {zip_path.stat().st_size // 1024} KB, {len(default)} glyphs in minecraft:default, {n_cosmetics} cosmetics, {menu_files} menu skin files")
