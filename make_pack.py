@@ -11,6 +11,8 @@ rank tags (LuckPerms prefixes), chat, the tab list, name tags, titles.
   U+E110..U+E115   rank icons, same order (7x7)
   U+E120..U+E127   the owner badge with a moving glint (8 frames, for the tab list)
   U+E130           the Cosmic Coin, text-sized (8 px)
+  U+E140..U+E143   playtime ranks after the name (Explorer compass, Veteran diamond, Legend nether star) and the tab's
+                   playtime clock: Minecraft's own textures, by path (CosmicCraft plugin Playtime.java)
   U+E200..         item icons for the price book: Minecraft's own textures, referenced by path (nothing of Mojang's is copied)
   U+F801..U+F820   blank spaces of 1-32 px, U+F701..U+F720 the same backwards: exact layout in books
 
@@ -127,6 +129,8 @@ shutil.copy(SRC / "coin_16.png", tex / "coin_16.png")
 default.append(glyph("coin_16.png", chr(COIN), 8, 7))
 for i, (material, texture) in enumerate(PRICE_ICONS.items()):
     default.append({"type": "bitmap", "file": f"minecraft:{texture}.png", "ascent": 7, "height": 8, "chars": [chr(0xE200 + i)]})
+for cp, texture in {0xE140: "item/compass_00", 0xE141: "item/diamond", 0xE142: "item/nether_star", 0xE143: "item/clock_00"}.items():
+    default.append({"type": "bitmap", "file": f"minecraft:{texture}.png", "ascent": 7, "height": 8, "chars": [chr(cp)]})
 default.append({"type": "space", "advances": {chr(cp): n for n, cp in SPACES.items()}})
 
 
