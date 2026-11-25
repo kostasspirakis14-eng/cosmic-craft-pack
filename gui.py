@@ -7,6 +7,8 @@ layer), so the background can be fully opaque.
 Glyphs (keep in step with WardrobeMenu.java):
   U+E000            the background, 176x222 (the 6-row chest screen incl. your inventory), ascent 13 = its top at the
                     screen's top edge (the title is drawn at y 6, a glyph's top at y + 7 - ascent)
+  U+E001            the same look for a 3-row chest (176x168: the title, three shelf rows, your inventory), for the
+                    world menu (WorldMenu.java); cut from the big one so they always match
   U+E100 + 8*k + r  an 18x18 frame round a chest slot of row r (0..5), style k: 0 common, 1 rare, 2 epic,
                     3 legendary, 4 mythic, 5 worn (the one you wear), 6 tab (the open tab)
   U+F801..U+F809    spaces of -1, -2, -4 ... -256 px; U+F811..U+F819 spaces of +1 ... +256 px
@@ -45,11 +47,11 @@ def placeholder_bg():
     for r in range(6):
         for c in range(9):
             cell(8 + c * 18, 18 + r * 18, (52, 36, 96, 255) if r in (0, 5) else (34, 24, 66, 255))
-    for r in range(3):
+    for r in range(3):  # your inventory: items at y 139 + 18r, the hotbar at 197 (vanilla ChestMenu)
         for c in range(9):
-            cell(8 + c * 18, 140 + r * 18, (34, 24, 66, 255))
+            cell(8 + c * 18, 139 + r * 18, (34, 24, 66, 255))
     for c in range(9):
-        cell(8 + c * 18, 198, (34, 24, 66, 255))
+        cell(8 + c * 18, 197, (34, 24, 66, 255))
     return img
 
 
@@ -74,12 +76,33 @@ def load(path, fallback, size):
     return fallback
 
 
+# shortcut: the first Claude Design bg (2026-11-25) drew your inventory 1 px too low (the prompt said so); set False for art from the corrected prompt
+ART_INVENTORY_LOW = True
+
+
+def small(bg):
+    """The 3-row version: the title strip, three shelf rows, the bottom (the "Inventory" strip and your inventory)."""
+    out = Image.new("RGBA", (176, 168))
+    out.paste(bg.crop((0, 0, 176, 17)), (0, 0))
+    out.paste(bg.crop((0, 35, 176, 89)), (0, 17))
+    out.paste(bg.crop((0, 125, 176, 222)), (0, 71))
+    return out
+
+
 def write(out, src):
     tex = out / "assets/cosmic/textures/font/gui"
     tex.mkdir(parents=True, exist_ok=True)
     art = src / "wardrobe"
-    load(art / "bg.png", placeholder_bg(), (176, 222)).save(tex / "wardrobe_bg.png")
-    providers = [{"type": "bitmap", "file": "cosmic:font/gui/wardrobe_bg.png", "ascent": 13, "height": 222, "chars": [""]}]
+    bg = load(art / "bg.png", None, (176, 222))
+    if bg is not None and ART_INVENTORY_LOW:
+        lifted = bg.copy()
+        lifted.paste(bg.crop((0, 138, 176, 222)), (0, 137))
+        bg = lifted
+    bg = bg or placeholder_bg()
+    bg.save(tex / "wardrobe_bg.png")
+    small(bg).save(tex / "world_bg.png")
+    providers = [{"type": "bitmap", "file": "cosmic:font/gui/wardrobe_bg.png", "ascent": 13, "height": 222, "chars": [""]},
+                 {"type": "bitmap", "file": "cosmic:font/gui/world_bg.png", "ascent": 13, "height": 168, "chars": [""]}]
     for k, style in enumerate(STYLES):
         load(art / f"frame_{style}.png", placeholder_frame(style), (18, 18)).save(tex / f"frame_{style}.png")
         for r in range(6):
@@ -101,6 +124,6 @@ if __name__ == "__main__":  # self-check: the glyph table is the one WardrobeMen
         n = write(Path(t), Path(t) / "src")
         font = json.loads((Path(t) / "assets/cosmic/font/wardrobe.json").read_text(encoding="utf-8"))
         chars = [c for p in font["providers"] if p["type"] == "bitmap" for c in p["chars"]]
-        assert len(chars) == 1 + 7 * 6 and len(set(chars)) == len(chars), chars
+        assert len(chars) == 2 + 7 * 6 and len(set(chars)) == len(chars), chars
         assert font["providers"][-1]["advances"][""] == -256 and font["providers"][-1]["advances"][""] == 1
         print(f"gui.py ok: {n} providers")
